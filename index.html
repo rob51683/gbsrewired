@@ -915,12 +915,23 @@ function initStatusChart(){
     if (records.length === 0) {
       var dbg = document.getElementById('debugPanel');
       dbg.style.display = 'block';
-      dbg.textContent =
-        'DIAGNOSTIC — 0 contacts parsed. Please screenshot this whole box and send it back.\n\n' +
-        'table.cols labels (in order):\n' + JSON.stringify(table.cols.map(function(c){ return c.label; }), null, 1) + '\n\n' +
-        'table.rows[0].c values:\n' + JSON.stringify((table.rows[0] || {}).c, null, 1) + '\n\n' +
-        'table.rows[1].c values:\n' + JSON.stringify((table.rows[1] || {}).c, null, 1) + '\n\n' +
-        'total rows returned: ' + table.rows.length;
+      var lines = [];
+      lines.push('DIAGNOSTIC — 0 contacts parsed. Please screenshot this whole box (scroll if needed) and send it back.');
+      lines.push('');
+      lines.push('Looking for these headers: ' + REQUIRED_HEADERS.join(', '));
+      lines.push('');
+      lines.push('cols labels: ' + JSON.stringify(table.cols.map(function(c){ return c.label; })));
+      lines.push('total data rows returned: ' + table.rows.length);
+      lines.push('');
+      var scanN = Math.min(table.rows.length, 8);
+      for (var i = 0; i < scanN; i++) {
+        var vals = table.rows[i].c.map(function(c){ return c ? c.v : null; });
+        var thisRowMatches = REQUIRED_HEADERS.every(function(h){ return vals.indexOf(h) !== -1; });
+        lines.push('row[' + i + ']' + (thisRowMatches ? '  <-- MATCHES required headers' : '') + ': ' + JSON.stringify(vals));
+      }
+      if (table.rows.length > scanN) lines.push('... (' + (table.rows.length - scanN) + ' more rows not shown)');
+      dbg.textContent = lines.join('\n');
+      console.log(dbg.textContent);
     }
   }).catch(function(err){
     console.error(err);
