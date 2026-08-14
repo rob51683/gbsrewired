@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>GBS Rewired Business Development — Territory &amp; Pipeline Dashboard</title>
+<style>
+  :root{
+    color-scheme: light;
+    --navy:#0B1440; --navy-deep:#030335;
+    --accent:#3D5FE0; --accent-soft:#E7ECFB;
+    --coral:#FF0050; --coral-soft:#FFE3EC;
+    --good:#0ca30c; --good-soft:#E6F5E6;
+    --pub:#6947BF; --pub-soft:#ECE7FA;
+    --surface:#FFFFFF; --page:#F5F6FB;
+    --ink:#0B1440; --ink-secondary:#5B6472; --ink-muted:#8B93A7;
+    --grid:#E7E9F2; --border:rgba(11,20,64,0.08);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--page); color:var(--ink); font-family:system-ui,-apple-system,"Segoe UI",Arial,sans-serif; -webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1320px; margin:0 auto; padding:28px 32px 60px;}
+  header{margin-bottom:22px;}
+  .title-block h1{font-size:23px; margin:0 0 6px; color:var(--navy-deep); letter-spacing:-0.01em;}
+  .title-block p{margin:0; color:var(--ink-secondary); font-size:13.5px;}
+  .tdot{width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:7px; flex:none;}
+  .owner{font-size:10.5px; font-weight:600; color:var(--ink-muted); text-transform:none; margin-left:4px;}
+  section{margin-bottom:32px;}
+  .section-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:14px; flex-wrap:wrap; gap:8px;}
+  .section-head h2{font-size:15px; margin:0; color:var(--navy); letter-spacing:.02em;}
+  .section-head .sub{font-size:11.5px; color:var(--ink-muted);}
+  .card{background:var(--surface); border-radius:14px; padding:20px 22px; border:1px solid var(--border); box-shadow:0 1px 2px rgba(11,20,64,0.04);}
+
+  .heatmap{width:100%; border-collapse:collapse; table-layout:fixed;}
+  .heatmap th{font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-muted); font-weight:600; padding:0 8px 10px; text-align:center;}
+  .heatmap th:first-child, .heatmap td:first-child{text-align:left; width:24%;}
+  .heatmap th:not(:first-child):not(:last-child), .heatmap td:not(:first-child):not(:last-child){width:14.5%;}
+  .heatmap th:last-child, .heatmap td:last-child{width:13%;}
+  .heatmap td{text-align:center; padding:5px;}
+  .heatmap td:first-child{font-size:12.5px; font-weight:700; color:var(--navy); padding-left:4px; display:flex; align-items:center; white-space:nowrap;}
+  .hcell{border-radius:10px; padding:12px 4px; font-size:15px; font-weight:700;}
+  .hcell.forecast{border:1.5px dashed var(--coral); background:var(--coral-soft) !important; color:var(--coral) !important;}
+  .tot{font-weight:700; color:var(--navy); font-size:13px; text-align:center !important;}
+  .tot-cell{font-weight:700; color:var(--navy); font-size:13px; background:var(--grid) !important; border-radius:10px; padding:12px 4px;}
+  tr.totalrow td{border-top:2px solid var(--grid); padding-top:10px; font-weight:700;}
+  tr.totalrow td:first-child{color:var(--navy-deep);}
+
+  .grid-2{display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start;}
+  .grid-2 .heatmap th{font-size:9px; padding:0 3px 7px;}
+  .grid-2 .heatmap td{padding:2px;}
+  .grid-2 .hcell{padding:7px 2px; font-size:12.5px; border-radius:8px;}
+  .grid-2 .heatmap td:first-child{font-size:10.5px;}
+  .grid-2 .owner{font-size:9px;}
+  .grid-2 .tot-cell{padding:7px 2px; font-size:11px;}
+  .grid-2 .tot{font-size:11px;}
+  .grid-2 .card{padding:16px 16px;}
+  .grid-2 table.pv th{font-size:9px; padding:0 6px 9px;}
+  .grid-2 table.pv td{padding:10px 6px; font-size:11.5px;}
+
+  table.pv{width:100%; border-collapse:collapse;}
+  table.pv th{text-align:left; color:var(--ink-muted); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; padding:0 10px 10px; border-bottom:1px solid var(--grid);}
+  table.pv th.num, table.pv td.num{text-align:right;}
+  table.pv td{padding:10px; border-bottom:1px solid var(--grid); color:var(--ink); font-size:13px;}
+  table.pv td:first-child{display:flex; align-items:center; font-weight:700; white-space:nowrap;}
+  table.pv td.num{font-variant-numeric:tabular-nums; font-weight:700;}
+  table.pv td.lost-txt{color:var(--coral);}
+  table.pv tr:last-child td{border-bottom:none;}
+  table.pv tr.totalrow td{border-top:2px solid var(--grid); padding-top:12px;}
+
+  table.detail{width:100%; border-collapse:collapse; font-size:12px;}
+  table.detail th{text-align:left; color:var(--ink-muted); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; padding:0 10px 8px; border-bottom:1px solid var(--grid);}
+  table.detail th.num, table.detail td.num{text-align:right;}
+  table.detail td{padding:7px 10px; border-bottom:1px solid var(--grid); color:var(--ink); vertical-align:middle;}
+  table.detail td:first-child{display:flex; align-items:center; font-weight:700; white-space:nowrap;}
+  table.detail td.num{font-variant-numeric:tabular-nums; font-weight:600;}
+  table.detail tr:last-child td{border-bottom:none;}
+  table.detail tr.hidden-row{display:none;}
+  .mcheck{font-size:14px;}
+
+  .filters{display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap;}
+  .filters label{font-size:11px; color:var(--ink-muted); font-weight:600; text-transform:uppercase; letter-spacing:.03em; margin-right:4px;}
+  .filters select{font-family:inherit; font-size:12.5px; color:var(--ink); border:1px solid var(--border); border-radius:8px; padding:6px 10px; background:var(--surface); cursor:pointer;}
+  .filters .count{font-size:11.5px; color:var(--ink-muted); margin-left:auto;}
+
+  .pill{display:inline-block; padding:2px 9px; border-radius:100px; font-size:10.5px; font-weight:700; white-space:nowrap;}
+  .pill.good{background:var(--good-soft); color:var(--good);}
+  .pill.accent{background:var(--accent-soft); color:var(--accent);}
+  .pill.muted{background:var(--grid); color:var(--ink-muted);}
+  .pill.coral{background:var(--coral-soft); color:var(--coral);}
+  .pill.pub{background:var(--pub-soft); color:var(--pub);}
+  .pill.intro{background:#FCEFD1; color:#92720B;}
+
+  .pill.st-open{background:var(--accent-soft); color:var(--accent);}
+  .pill.st-lost{background:#FBE3EA; color:#C81E4A;}
+  .pill.st-dead{background:#F8E2EE; color:#B2367B;}
+  .pill.st-active{background:var(--good-soft); color:var(--good);}
+  .pill.st-scheduled{background:#DFF3F0; color:#0F8A7A;}
+  .pill.st-chasing{background:#FCEBD8; color:#C2650A;}
+  .pill.st-intro{background:#FFF3C4; color:#92720B;}
+  .pill.st-dup{background:var(--grid); color:var(--ink-muted);}
+  .pill.st-none{background:var(--grid); color:var(--ink-muted);}
+
+  table.flip{width:100%; border-collapse:collapse; table-layout:fixed;}
+  table.flip th{text-align:left; color:var(--ink-muted); font-weight:600; font-size:11px; padding:0 10px 12px; border-bottom:2px solid var(--grid); vertical-align:bottom;}
+  table.flip td{padding:14px 10px 0; color:var(--ink); vertical-align:top; border-right:1px solid var(--grid);}
+  table.flip td:last-child{border-right:none;}
+  ul.acct-list{margin:0; padding-left:16px; font-size:12px; line-height:1.75; color:var(--ink);}
+  .acct-co{color:var(--ink-muted); font-weight:400;}
+  table.flip.activities-flip .pill{margin-bottom:2px;}
+
+  .sourcing-layout{display:flex; gap:14px; align-items:flex-start;}
+  .side-filter{flex:0 0 96px; display:flex; flex-direction:column; gap:2px; border-right:1px solid var(--grid); padding-right:10px;}
+  .side-filter .sf-title{font-size:9.5px; text-transform:uppercase; letter-spacing:.03em; color:var(--ink-muted); font-weight:600; margin-bottom:4px;}
+  .sf-option{display:flex; align-items:flex-start; gap:5px; padding:5px 6px; border-radius:8px; cursor:pointer; font-size:11px; color:var(--ink-secondary);}
+  .sf-option:hover{background:var(--page);}
+  .sf-option input{margin-top:2px; accent-color:var(--accent);}
+  .sf-option.active{background:var(--accent-soft); color:var(--navy); font-weight:700;}
+  .sourcing-table-wrap{flex:1; min-width:0;}
+
+  .chart-card{padding:16px 16px 8px;}
+  .chart-legend{display:flex; gap:14px; align-items:center; margin:2px 0 10px;}
+  .chart-legend .lg-item{display:flex; align-items:center; font-size:10.5px; color:var(--ink-secondary);}
+  .chart-tooltip{position:fixed; pointer-events:none; background:var(--navy-deep); color:#fff; font-size:11.5px; line-height:1.5; padding:8px 11px; border-radius:8px; box-shadow:0 4px 16px rgba(0,0,0,0.2); max-width:240px; z-index:50; display:none;}
+  .chart-tooltip .tt-title{font-weight:700; margin-bottom:3px;}
+  .chart-tooltip .tt-row{color:#C9D3F5;}
+  .chart-note{font-size:10.5px; color:var(--ink-muted); margin:4px 0 2px;}
+  #statusChartSvg .bar-seg{cursor:pointer;}
+  #statusChartSvg .bar-seg:hover{filter:brightness(1.08);}
+  #statusChartSvg text{font-family:inherit;}
+
+  .load-banner{display:none; align-items:center; gap:10px; background:#FFF3C4; color:#7A5B00; border-radius:10px; padding:10px 16px; font-size:12.5px; margin-bottom:18px;}
+  .load-banner.show{display:flex;}
+  .load-banner.error{background:#FBE3EA; color:#8A0F33;}
+  .load-banner .spinner{width:13px; height:13px; border-radius:50%; border:2px solid rgba(0,0,0,0.15); border-top-color:currentColor; animation:spin .7s linear infinite; flex:none;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .stamp{font-size:11px; color:var(--ink-muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="title-block">
+      <h1>GBS Rewired Business Development</h1>
+      <p>Territory and Pipeline Dashboard <span class="stamp" id="loadStamp"></span></p>
+    </div>
+  </header>
+
+  <div class="load-banner" id="loadBanner"><div class="spinner"></div><span id="loadBannerText">Loading live data from Google Sheets…</span></div>
+  <div id="debugPanel" style="display:none; background:#111; color:#0f0; font-family:monospace; font-size:11px; white-space:pre-wrap; padding:14px; border-radius:8px; margin-bottom:18px; max-height:400px; overflow:auto;"></div>
+
+  <section>
+    <div class="grid-2">
+      <div>
+        <div class="section-head">
+          <h2>Widget 1 — Activities per territory</h2>
+          <span class="sub">Podcast / report feature / conference · Q1→Q3 actual, Q4 illustrative run-rate</span>
+        </div>
+        <div class="card">
+          <table class="heatmap">
+            <thead><tr><th></th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Total</th></tr></thead>
+            <tbody id="t1body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="section-head">
+          <h2>Widget 2 — Meetings per territory</h2>
+          <span class="sub">Q1→Q3 actual, Q4 shows the stated target (1/territory, 0 where owner is TBD)</span>
+        </div>
+        <div class="card">
+          <table class="heatmap">
+            <thead><tr><th></th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Total</th></tr></thead>
+            <tbody id="t2body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="grid-2">
+      <div>
+        <div class="section-head">
+          <h2>Widget 3 — Opportunities per territory</h2>
+          <span class="sub">Real, auto-deduplicated via Opportunity Link · Q4 marked TBD, not forecast</span>
+        </div>
+        <div class="card">
+          <table class="heatmap">
+            <thead><tr><th></th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>Total</th></tr></thead>
+            <tbody id="t3body"></tbody>
+          </table>
+        </div>
+      </div>
+      <div>
+        <div class="section-head">
+          <h2>Widget 4 — Pipeline value (real $, from Salesforce)</h2>
+          <span class="sub">No forecast — deal sizes span $0–$5M, so a made-up Q4 number would be a guess dressed up as data</span>
+        </div>
+        <div class="card">
+          <table class="pv">
+            <thead><tr><th>Territory</th><th class="num">Open</th><th class="num">Lost</th><th class="num">Total</th><th class="num">#</th></tr></thead>
+            <tbody id="tpvbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="grid-2">
+      <div>
+        <div class="section-head">
+          <h2>Widget 5 — Activity sourcing, by territory</h2>
+          <span class="sub">Conference = SSOW Orlando + Europe · Publication = GBS Innovators / direct intro</span>
+        </div>
+        <div class="card sourcing-layout">
+          <div class="side-filter">
+            <div class="sf-title">Show</div>
+            <label class="sf-option active" data-mode="activity">
+              <input type="radio" name="sourcingMode" value="activity" checked> Activity
+            </label>
+            <label class="sf-option" data-mode="meetings">
+              <input type="radio" name="sourcingMode" value="meetings"> Meetings
+            </label>
+            <label class="sf-option" data-mode="opportunity">
+              <input type="radio" name="sourcingMode" value="opportunity"> Opportunity
+            </label>
+          </div>
+          <div class="sourcing-table-wrap">
+            <table class="heatmap" id="sourcingTable">
+              <thead><tr><th></th><th>Conf</th><th>Pod</th><th>Pub</th><th>Total</th></tr></thead>
+              <tbody id="sourcingBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+      <div>
+        <div class="section-head">
+          <h2>Widget 6 — Status overview, where every contact stands</h2>
+          <span class="sub">Stacked by activity type · dup contacts &amp; blanks excluded</span>
+        </div>
+        <div class="card chart-card">
+          <div class="filters">
+            <label for="chartStatusMode">Status</label>
+            <select id="chartStatusMode">
+              <option value="all">All statuses</option>
+              <option value="live">Live statuses</option>
+            </select>
+            <label for="chartTerritory">Territory</label>
+            <select id="chartTerritory">
+              <option value="all">All territories</option>
+            </select>
+          </div>
+          <div class="chart-legend">
+            <span class="lg-item"><span class="tdot" style="background:#3D5FE0;"></span>Conference</span>
+            <span class="lg-item"><span class="tdot" style="background:#0ca30c;"></span>Podcast</span>
+            <span class="lg-item"><span class="tdot" style="background:#6947BF;"></span>Publication</span>
+          </div>
+          <svg id="statusChartSvg" width="100%" viewBox="0 0 600 300" preserveAspectRatio="xMidYMid meet"></svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Widget 7 — Complete detail, every contact</h2>
+      <span class="sub">Real names, companies, CRM status &amp; opportunity value from Salesforce</span>
+    </div>
+    <div class="card" style="padding:16px 22px;">
+      <div class="filters">
+        <label for="filterTerritory">Territory</label>
+        <select id="filterTerritory">
+          <option value="all">All territories</option>
+          <option value="US1">US1</option>
+          <option value="US2">US2</option>
+          <option value="DE1">DE1</option>
+          <option value="DE2">DE2</option>
+          <option value="DE3">DE3</option>
+          <option value="FR">FR</option>
+          <option value="SWZ/AUS">SWZ/AUS</option>
+          <option value="UK">UK</option>
+          <option value="Nordics">Nordics</option>
+        </select>
+        <label for="filterQuarter">Quarter</label>
+        <select id="filterQuarter">
+          <option value="all">All quarters</option>
+          <option value="Q1">Q1</option>
+          <option value="Q2">Q2</option>
+          <option value="Q3">Q3</option>
+          <option value="Q4">Q4</option>
+        </select>
+        <label for="filterStatus">Status</label>
+        <select id="filterStatus">
+          <option value="all">All statuses</option>
+          <option value="Chasing">Chasing</option>
+          <option value="Intro/Mtg in progress">Intro/Mtg in progress</option>
+          <option value="Meeting Scheduled">Meeting Scheduled</option>
+          <option value="Meeting Active">Meeting Active</option>
+          <option value="Meeting Dead">Meeting Dead</option>
+          <option value="Open Opp">Open Opp</option>
+          <option value="Lost Opp">Lost Opp</option>
+          <option value="Dup contact (same opp)">Dup contact (same opp)</option>
+          <option value="—">— (no status)</option>
+        </select>
+        <label for="filterType">Type</label>
+        <select id="filterType">
+          <option value="all">All types</option>
+          <option value="Conference">Conference</option>
+          <option value="Podcast">Podcast</option>
+          <option value="Publication">Publication</option>
+        </select>
+        <span class="count" id="rowCount"></span>
+      </div>
+      <table class="detail" id="detailTable">
+        <thead><tr><th>Territory</th><th>Qtr</th><th>Name</th><th>Company</th><th>Type</th><th>Meeting</th><th>Status</th><th class="num">Opp Value</th></tr></thead>
+        <tbody id="t6body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Widget 8 — Target accounts to chase</h2>
+      <span class="sub">Illustrative — placeholder companies per territory</span>
+    </div>
+    <div class="card">
+      <table class="flip">
+        <thead><tr id="t7head"></tr></thead>
+        <tbody><tr id="t7body"></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head">
+      <h2>Widget 9 — Detailed activities</h2>
+      <span class="sub">Real — grouped by activity: conferences kept separate, podcasts merged, Innovators Report merged, direct intros merged</span>
+    </div>
+    <div class="card">
+      <table class="flip activities-flip">
+        <thead><tr id="t8head"></tr></thead>
+        <tbody><tr id="t8body"></tr></tbody>
+      </table>
+    </div>
+  </section>
+
+</div>
+<div class="chart-tooltip" id="chartTooltip"></div>
+<script>
+/* =========================================================================
+   CONFIG — the only thing that changes if the Sheet moves or is renamed
+   ========================================================================= */
+var SHEET_ID = '13d0SyThGsv5kPAFShA1jbNuYdKWr7JclZG2VsrVA6r8';
+var SHEET_NAME = 'Tracker';
+
+/* Territory metadata is kept static here rather than sourced from the Sheet
+   — it almost never changes, and reading it live would add a second
+   network round-trip and a second failure mode for no real benefit. If you
+   add/rename a territory or reassign an owner, edit this block. */
+var TERRITORIES = ['US1','US2','DE1','DE2','DE3','FR','SWZ/AUS','UK','Nordics'];
+var OWNER = {'US1':'Brian','US2':'Luca','DE1':'Christian','DE2':'Georg','DE3':'TBD','FR':'Larissa','SWZ/AUS':'Sven','UK':'Ash','Nordics':'Thomas'};
+var COLOR = {'US1':'#2a78d6','US2':'#1baf7a','DE1':'#008300','DE2':'#4a3aa7','DE3':'#a6a49c','FR':'#eb6834','SWZ/AUS':'#eda100','UK':'#e87ba4','Nordics':'#e34948'};
+
+/* Illustrative placeholder target accounts for Widget 8 — not sourced from the Sheet */
+var TARGETS = {
+ 'US1': ['Kestrel Global Foods','Ardenne Health Systems','Brightfield Logistics','Solace Insurance Group','Meridian Aerospace'],
+ 'US2': ['Halcyon Retail Corp','Ferro Dynamics','Union Point Bank','Cascade Materials','Northwind Media'],
+ 'DE1': ['Vantorra Industrials','Baumgarten Chemie AG','Rheinlicht Maschinenbau','Stahlkern Group','Alpenfeld Logistik'],
+ 'DE2': ['Kronenberg Pharma','Nordkreuz Automotive','Wesselmann Group','Deutzheim Energie','Falkenrath Technik'],
+ 'DE3': ['Brunwald Manufacturing','Isartal Robotics','Steinmark Holding','Vogelsberg Foods','Rheinburg Systems'],
+ 'FR':  ['Lumiere Cosmetics Group','Faucon Aerospace','Bellerive Retail','Ondine Utilities','Marchand Freres Holding'],
+ 'SWZ/AUS': ['Alpenrose Pharma','Vierwald Insurance','Tiroler Maschinen AG','Zugspitz Logistics','Basel Analytics Group'],
+ 'UK':  ['Thornbury Retail Group','Kingsmere Financial','Aldergate Utilities','Brackenfield Aerospace','Camborne Logistics'],
+ 'Nordics': ['Nordvik Energi','Fjellheim Maritime','Solstrand Pharma','Baltic Ridge Logistics','Vesteris Tech'],
+};
+
+var QUARTERS = ['Q1','Q2','Q3','Q4'];
+
+/* =========================================================================
+   DATA LOADING — JSONP against Google's gviz endpoint (CORS-proof by
+   design: the response is executed as a <script>, not fetched via XHR).
+   A ?mock=1 query param swaps in a local same-origin JSON file so the
+   whole pipeline below can be exercised without reaching Google at all.
+   ========================================================================= */
+function showBanner(text, isError){
+  var b = document.getElementById('loadBanner');
+  var t = document.getElementById('loadBannerText');
+  t.textContent = text;
+  b.classList.add('show');
+  b.classList.toggle('error', !!isError);
+  if (!isError) {
+    var spinner = b.querySelector('.spinner');
+    if (spinner) spinner.style.display = '';
+  } else {
+    var sp = b.querySelector('.spinner'); if (sp) sp.style.display = 'none';
+  }
+}
+function hideBanner(){ document.getElementById('loadBanner').classList.remove('show'); }
+
+function loadTrackerTableJSONP(sheetId, sheetName, timeoutMs){
+  return new Promise(function(resolve, reject){
+    var cbName = '__gbsCB_' + Math.random().toString(36).slice(2);
+    var timer = setTimeout(function(){
+      cleanup();
+      reject(new Error('Timed out waiting for Google Sheets (is the sheet shared as "Anyone with the link can view"?)'));
+    }, timeoutMs || 10000);
+    function cleanup(){
+      clearTimeout(timer);
+      delete window[cbName];
+      if (script.parentNode) script.parentNode.removeChild(script);
+    }
+    window[cbName] = function(resp){
+      cleanup();
+      if (!resp || resp.status === 'error' || !resp.table) {
+        reject(new Error('Google Sheets returned an error — check the sheet is shared publicly and the tab is named "' + sheetName + '".'));
+        return;
+      }
+      resolve(resp.table);
+    };
+    var url = 'https://docs.google.com/spreadsheets/d/' + sheetId + '/gviz/tq'
+      + '?tqx=out:json;responseHandler:' + cbName
+      + '&sheet=' + encodeURIComponent(sheetName)
+      + '&headers=1';
+    var script = document.createElement('script');
+    script.src = url;
+    script.onerror = function(){ cleanup(); reject(new Error('Could not reach Google Sheets (network error).')); };
+    document.head.appendChild(script);
+  });
+}
+
+function loadTrackerTableMock(){
+  return fetch('mock/tracker_table.json').then(function(r){
+    if (!r.ok) throw new Error('mock fetch failed: ' + r.status);
+    return r.json();
+  });
+}
+
+/* =========================================================================
+   PARSE — gviz table -> flat record objects, same shape the old Python
+   pipeline (records_v3.json) used to produce.
+   ========================================================================= */
+var REQUIRED_HEADERS = ['Territory','Owner','Name','Company','Source','Activity Type','Quarter','Meeting Held?','Opportunity Value','Opportunity Link','STATUS'];
+
+function parseTrackerTable(table){
+  var idx = {};
+  table.cols.forEach(function(c, i){ idx[c.label] = i; });
+  var rows = table.rows;
+
+  /* Google's header auto-detection sometimes guesses wrong (e.g. a title/
+     note row in row 1 gets treated as the header, and the real column
+     names end up as the first data row instead). Detect that and recover
+     by treating the first data row as the header row instead. */
+  var looksRight = REQUIRED_HEADERS.every(function(h){ return idx[h] !== undefined; });
+  if (!looksRight && rows.length > 0) {
+    var firstRowLabels = {};
+    rows[0].c.forEach(function(c, i){ firstRowLabels[c && c.v] = i; });
+    var firstRowLooksLikeHeader = REQUIRED_HEADERS.every(function(h){ return firstRowLabels[h] !== undefined; });
+    if (firstRowLooksLikeHeader) {
+      idx = firstRowLabels;
+      rows = rows.slice(1);
+    }
+  }
+
+  function cellStr(row, label){
+    var c = row.c[idx[label]];
+    return (c && c.v !== null && c.v !== undefined) ? String(c.v) : '';
+  }
+  function cellNum(row, label){
+    var c = row.c[idx[label]];
+    if (!c || c.v === null || c.v === undefined || c.v === '') return 0;
+    var n = Number(c.v);
+    return isNaN(n) ? 0 : n;
+  }
+  return rows.map(function(row){
+    var oppLinkRaw = cellStr(row, 'Opportunity Link');
+    var statusRaw = cellStr(row, 'STATUS');
+    return {
+      territory: cellStr(row, 'Territory'),
+      owner: cellStr(row, 'Owner'),
+      name: cellStr(row, 'Name'),
+      company: cellStr(row, 'Company'),
+      event: cellStr(row, 'Source'),
+      atype: cellStr(row, 'Activity Type'),
+      quarter: cellStr(row, 'Quarter'),
+      meeting: cellStr(row, 'Meeting Held?') === 'Y',
+      opp_link: !!oppLinkRaw,
+      opp_value: cellNum(row, 'Opportunity Value'),
+      status: statusRaw || null,
+    };
+  }).filter(function(r){ return TERRITORIES.indexOf(r.territory) !== -1; });
+}
+
+/* =========================================================================
+   AGGREGATE + RENDER — direct JS port of gen_v7.py
+   ========================================================================= */
+var RECORDS = [];
+
+function label(t){ return t + ' <span class="owner">' + OWNER[t] + '</span>'; }
+function fmtMoney(v){ return v ? ('$' + Math.round(v).toLocaleString('en-US')) : '$0'; }
+function cellColor(v){
+  if (v === 0) return ['#F2F3FA', '#8B93A7'];
+  if (v === 1) return ['#CDE2FB', '#0B1440'];
+  if (v === 2) return ['#9EC5F4', '#0B1440'];
+  if (v === 3) return ['#5598E7', '#ffffff'];
+  if (v === 4) return ['#2A78D6', '#ffffff'];
+  if (v <= 6) return ['#184F95', '#ffffff'];
+  return ['#0d366b', '#ffffff'];
+}
+
+function grid(filterFn){
+  var g = {};
+  TERRITORIES.forEach(function(t){ g[t] = {Q1:0,Q2:0,Q3:0,Q4:0}; });
+  RECORDS.forEach(function(r){ if (filterFn(r)) g[r.territory][r.quarter] = (g[r.territory][r.quarter]||0) + 1; });
+  return g;
+}
+function totals(g){
+  var rowT = {}, colT = {Q1:0,Q2:0,Q3:0,Q4:0}, grand = 0;
+  TERRITORIES.forEach(function(t){
+    var s = 0;
+    QUARTERS.forEach(function(q){ s += g[t][q]; colT[q] += g[t][q]; });
+    rowT[t] = s; grand += s;
+  });
+  return {rowT: rowT, colT: colT, grand: grand};
+}
+
+function renderQtrTable(gridData, fc, tbd){
+  var tt = totals(gridData);
+  var rows = [];
+  TERRITORIES.forEach(function(t){
+    var cells = [];
+    ['Q1','Q2','Q3'].forEach(function(q){
+      var v = gridData[t][q];
+      var c = cellColor(v);
+      cells.push('<td><div class="hcell" style="background:' + c[0] + ';color:' + c[1] + ';">' + v + '</div></td>');
+    });
+    if (tbd) cells.push('<td><div class="hcell forecast">TBD</div></td>');
+    else cells.push('<td><div class="hcell forecast">' + fc[t] + '</div></td>');
+    var dot = '<span class="tdot" style="background:' + COLOR[t] + ';"></span>';
+    var rowTotal = tbd ? tt.rowT[t] : tt.rowT[t] + fc[t];
+    rows.push('<tr><td>' + dot + label(t) + '</td>' + cells.join('') + '<td class="tot">' + rowTotal + '</td></tr>');
+  });
+  var totCells = [];
+  ['Q1','Q2','Q3'].forEach(function(q){ totCells.push('<td class="tot-cell">' + tt.colT[q] + '</td>'); });
+  var grandDisp;
+  if (tbd) {
+    totCells.push('<td><div class="hcell forecast tot-cell">TBD</div></td>');
+    grandDisp = tt.grand;
+  } else {
+    var fcTotal = 0; TERRITORIES.forEach(function(t){ fcTotal += fc[t]; });
+    totCells.push('<td><div class="hcell forecast tot-cell">' + fcTotal + '</div></td>');
+    grandDisp = tt.grand + fcTotal;
+  }
+  rows.push('<tr class="totalrow"><td>Total</td>' + totCells.join('') + '<td class="tot">' + grandDisp + '</td></tr>');
+  return rows.join('');
+}
+
+var STATUS_PILL = {
+  'Oppty: Open': ['st-open', 'Open Opp'],
+  'Oppty: Closed/Lost': ['st-lost', 'Lost Opp'],
+  'Meeting - Active': ['st-active', 'Meeting Active'],
+  'Meeting - Dead': ['st-dead', 'Meeting Dead'],
+  'Meeting Scheduled': ['st-scheduled', 'Meeting Scheduled'],
+  'Chasing': ['st-chasing', 'Chasing'],
+  'Intro/Mtg in progress': ['st-intro', 'Intro/Mtg in progress'],
+  'Ignore (Multiple per Opp)': ['st-dup', 'Dup contact (same opp)'],
+};
+function statusPill(status){ return STATUS_PILL[status] || ['st-none', '—']; }
+
+function renderDetail(){
+  var rows = [];
+  TERRITORIES.forEach(function(t){
+    var recs = RECORDS.filter(function(r){ return r.territory === t; });
+    recs.sort(function(a,b){
+      if (a.quarter !== b.quarter) return a.quarter < b.quarter ? -1 : 1;
+      return a.name < b.name ? -1 : (a.name > b.name ? 1 : 0);
+    });
+    recs.forEach(function(r){
+      var meetingMark = r.meeting
+        ? '<span class="mcheck" title="Meeting held">✅</span>'
+        : '<span class="mcheck" title="No meeting yet">❌</span>';
+      var sp = statusPill(r.status);
+      var statusHtml = '<span class="pill ' + sp[0] + '">' + sp[1] + '</span>';
+      var typeCls = {'Conference':'accent','Podcast':'good','Publication':'muted'}[r.atype] || 'muted';
+      var typeHtml = '<span class="pill ' + typeCls + '">' + r.atype + '</span>';
+      var val = r.opp_link ? fmtMoney(r.opp_value) : '—';
+      var dot = '<span class="tdot" style="background:' + COLOR[t] + ';"></span>';
+      rows.push(
+        '<tr data-territory="' + t + '" data-quarter="' + r.quarter + '" data-status="' + sp[1] + '" data-type="' + r.atype + '">' +
+        '<td>' + dot + label(t) + '</td><td>' + r.quarter + '</td><td>' + r.name + '</td><td>' + r.company + '</td>' +
+        '<td>' + typeHtml + '</td><td>' + meetingMark + '</td>' +
+        '<td>' + statusHtml + '</td><td class="num">' + val + '</td></tr>'
+      );
+    });
+  });
+  return rows.join('');
+}
+
+function renderPipeline(){
+  var pipe = {};
+  TERRITORIES.forEach(function(t){ pipe[t] = {open:0, lost:0, n:0}; });
+  RECORDS.forEach(function(r){
+    if (!r.opp_link) return;
+    var p = pipe[r.territory];
+    p.n += 1;
+    if (r.status === 'Oppty: Open') p.open += (r.opp_value || 0);
+    else if (r.status === 'Oppty: Closed/Lost') p.lost += (r.opp_value || 0);
+  });
+  var rows = [], totO = 0, totL = 0, totN = 0;
+  TERRITORIES.forEach(function(t){
+    var p = pipe[t];
+    totO += p.open; totL += p.lost; totN += p.n;
+    var dot = '<span class="tdot" style="background:' + COLOR[t] + ';"></span>';
+    var total = p.open + p.lost;
+    rows.push('<tr><td>' + dot + label(t) + '</td><td class="num">' + fmtMoney(p.open) + '</td>' +
+      '<td class="num lost-txt">' + fmtMoney(p.lost) + '</td>' +
+      '<td class="num tot">' + fmtMoney(total) + '</td><td class="num">' + p.n + '</td></tr>');
+  });
+  rows.push('<tr class="totalrow"><td>Total</td><td class="num">' + fmtMoney(totO) + '</td>' +
+    '<td class="num lost-txt">' + fmtMoney(totL) + '</td><td class="num tot">' + fmtMoney(totO + totL) + '</td>' +
+    '<td class="num">' + totN + '</td></tr>');
+  return rows.join('');
+}
+
+function renderTargets(){
+  var heads = [], cells = [];
+  TERRITORIES.forEach(function(t){
+    var dot = '<span class="tdot" style="background:' + COLOR[t] + ';"></span>';
+    heads.push('<th><div class="flip-head">' + dot + label(t) + '</div></th>');
+    var items = TARGETS[t].map(function(c){ return '<li>' + c + '</li>'; }).join('');
+    cells.push('<td><ul class="acct-list">' + items + '</ul></td>');
+  });
+  return {head: heads.join(''), body: cells.join('')};
+}
+
+function actGroup(event){
+  if (event === 'SSOW Orlando - March') return [0, 'Conference — SSOW Orlando (March)', 'accent'];
+  if (event === 'SSOW Europe May 18th') return [1, 'Conference — SSOW Europe (May 18)', 'accent'];
+  if (event === 'Podcast - 18/06' || event === 'Introduction post Podcast') return [2, 'Podcast', 'good'];
+  if (event === 'GBS Innovators') return [3, 'GBS Innovators Report feature', 'pub'];
+  return [4, 'Direct introduction', 'intro'];
+}
+
+function renderActivities(){
+  var groups = {}, meta = {};
+  RECORDS.forEach(function(r){
+    var g = actGroup(r.event);
+    if (!groups[g[1]]) groups[g[1]] = [];
+    groups[g[1]].push(r);
+    meta[g[1]] = [g[0], g[2]];
+  });
+  var glabels = Object.keys(meta).sort(function(a,b){ return meta[a][0] - meta[b][0]; });
+  var heads = [], cells = [];
+  glabels.forEach(function(gl){
+    heads.push('<th><span class="pill ' + meta[gl][1] + '">' + gl + '</span></th>');
+    var recs = groups[gl].slice().sort(function(a,b){ return a.name < b.name ? -1 : (a.name > b.name ? 1 : 0); });
+    var items = recs.map(function(r){ return '<li>' + r.name + ' <span class="acct-co">— ' + r.company + '</span></li>'; }).join('');
+    cells.push('<td><ul class="acct-list">' + items + '</ul></td>');
+  });
+  return {head: heads.join(''), body: cells.join('')};
+}
+
+/* =========================================================================
+   INIT — runs once data has been loaded and parsed
+   ========================================================================= */
+function initDashboard(records, stampText){
+  RECORDS = records;
+
+  var meetFc = {}, actFc = {};
+  TERRITORIES.forEach(function(t){
+    meetFc[t] = OWNER[t] === 'TBD' ? 0 : 1;
+    actFc[t] = OWNER[t] === 'TBD' ? 0 : 2;
+  });
+
+  var activities = grid(function(){ return true; });
+  var meetings = grid(function(r){ return r.meeting; });
+  var opps = grid(function(r){ return r.opp_link; });
+
+  document.getElementById('t1body').innerHTML = renderQtrTable(activities, actFc, false);
+  document.getElementById('t2body').innerHTML = renderQtrTable(meetings, meetFc, false);
+  document.getElementById('t3body').innerHTML = renderQtrTable(opps, null, true);
+  document.getElementById('tpvbody').innerHTML = renderPipeline();
+  document.getElementById('t6body').innerHTML = renderDetail();
+
+  var t7 = renderTargets();
+  document.getElementById('t7head').innerHTML = t7.head;
+  document.getElementById('t7body').innerHTML = t7.body;
+
+  var t8 = renderActivities();
+  document.getElementById('t8head').innerHTML = t8.head;
+  document.getElementById('t8body').innerHTML = t8.body;
+
+  document.getElementById('loadStamp').textContent = stampText || '';
+  hideBanner();
+
+  initDetailFilters();
+  initSourcing();
+  initStatusChart();
+}
+
+/* ---------------- Widget 7 filters ---------------- */
+function initDetailFilters(){
+  var terrSel = document.getElementById('filterTerritory');
+  var qtrSel = document.getElementById('filterQuarter');
+  var statusSel = document.getElementById('filterStatus');
+  var typeSel = document.getElementById('filterType');
+  var rows = Array.prototype.slice.call(document.querySelectorAll('#detailTable tbody tr'));
+  var countEl = document.getElementById('rowCount');
+  function applyFilter(){
+    var t = terrSel.value, q = qtrSel.value, s = statusSel.value, ty = typeSel.value, shown = 0;
+    rows.forEach(function(row){
+      var match = (t === 'all' || row.getAttribute('data-territory') === t) &&
+                  (q === 'all' || row.getAttribute('data-quarter') === q) &&
+                  (s === 'all' || row.getAttribute('data-status') === s) &&
+                  (ty === 'all' || row.getAttribute('data-type') === ty);
+      row.classList.toggle('hidden-row', !match);
+      if (match) shown++;
+    });
+    countEl.textContent = shown + ' of ' + rows.length + ' contacts shown';
+  }
+  [terrSel, qtrSel, statusSel, typeSel].forEach(function(el){ el.addEventListener('change', applyFilter); });
+  applyFilter();
+}
+
+/* ---------------- Widget 5 — Activity sourcing mode switch ---------------- */
+function initSourcing(){
+  var CHANNELS = ['Conference','Podcast','Publication'];
+  function computeGrid(mode){
+    var filterFn = mode === 'meetings' ? function(r){ return r.meeting; }
+                 : mode === 'opportunity' ? function(r){ return r.opp_link; }
+                 : function(){ return true; };
+    var g = {};
+    TERRITORIES.forEach(function(t){ g[t] = {Conference:0, Podcast:0, Publication:0}; });
+    RECORDS.filter(filterFn).forEach(function(r){ if (g[r.territory] && g[r.territory][r.atype] !== undefined) g[r.territory][r.atype]++; });
+    return g;
+  }
+  function render(mode){
+    var g = computeGrid(mode);
+    var rowsHtml = [];
+    var colTotals = {Conference:0, Podcast:0, Publication:0};
+    var grand = 0;
+    TERRITORIES.forEach(function(t){
+      var cells = [];
+      var rowsum = 0;
+      CHANNELS.forEach(function(c){
+        var v = g[t][c]; rowsum += v; colTotals[c] += v;
+        var col = cellColor(v);
+        cells.push('<td><div class="hcell" style="background:' + col[0] + ';color:' + col[1] + ';">' + v + '</div></td>');
+      });
+      grand += rowsum;
+      var dot = '<span class="tdot" style="background:' + COLOR[t] + ';"></span>';
+      rowsHtml.push('<tr><td>' + dot + label(t) + '</td>' + cells.join('') + '<td class="tot">' + rowsum + '</td></tr>');
+    });
+    var totCells = CHANNELS.map(function(c){ return '<td><div class="hcell tot-cell">' + colTotals[c] + '</div></td>'; });
+    rowsHtml.push('<tr class="totalrow"><td>Total</td>' + totCells.join('') + '<td class="tot">' + grand + '</td></tr>');
+    document.getElementById('sourcingBody').innerHTML = rowsHtml.join('');
+  }
+  var options = document.querySelectorAll('.sf-option');
+  options.forEach(function(opt){
+    opt.addEventListener('click', function(){
+      options.forEach(function(o){ o.classList.remove('active'); });
+      opt.classList.add('active');
+      opt.querySelector('input').checked = true;
+      render(opt.getAttribute('data-mode'));
+    });
+  });
+  render('activity');
+}
+
+/* ---------------- Widget 6 — horizontal stacked bar chart ---------------- */
+function initStatusChart(){
+  var FULL_STATUS_ORDER = ['Chasing','Intro/Mtg in progress','Meeting Scheduled','Meeting - Active','Meeting - Dead','Oppty: Open','Oppty: Closed/Lost'];
+  var LIVE_STATUS_ORDER = ['Chasing','Intro/Mtg in progress','Meeting Scheduled','Meeting - Active','Oppty: Open'];
+  var STATUS_LABEL = {'Chasing':'Chasing','Intro/Mtg in progress':'Intro/Mtg in progress','Meeting Scheduled':'Meeting Scheduled','Meeting - Active':'Meeting Active','Meeting - Dead':'Meeting Dead','Oppty: Open':'Open Opp','Oppty: Closed/Lost':'Lost Opp'};
+  var ATYPE_ORDER = ['Conference','Podcast','Publication'];
+  var ATYPE_COLOR = {'Conference':'#3D5FE0','Podcast':'#0ca30c','Publication':'#6947BF'};
+
+  var terrSel = document.getElementById('chartTerritory');
+  terrSel.innerHTML = '<option value="all">All territories</option>';
+  var statusModeSel = document.getElementById('chartStatusMode');
+  TERRITORIES.forEach(function(t){
+    var opt = document.createElement('option');
+    opt.value = t; opt.textContent = t + ' — ' + OWNER[t];
+    terrSel.appendChild(opt);
+  });
+
+  var svg = document.getElementById('statusChartSvg');
+  var tooltip = document.getElementById('chartTooltip');
+  var NS = 'http://www.w3.org/2000/svg';
+  function el(tag, attrs){
+    var e = document.createElementNS(NS, tag);
+    Object.keys(attrs).forEach(function(k){ e.setAttribute(k, attrs[k]); });
+    return e;
+  }
+  function computeTicks(maxVal){
+    var step = 1;
+    if (maxVal > 5) step = 2;
+    if (maxVal > 10) step = 5;
+    if (maxVal > 25) step = 10;
+    if (maxVal > 50) step = 20;
+    var top = Math.max(step, Math.ceil(maxVal / step) * step);
+    var ticks = [];
+    for (var v = 0; v <= top; v += step) ticks.push(v);
+    return {ticks: ticks, top: top};
+  }
+
+  function buildData(territory, statusOrder){
+    var filtered = RECORDS.filter(function(r){
+      return statusOrder.indexOf(r.status) !== -1 && (territory === 'all' || r.territory === territory);
+    });
+    return statusOrder.map(function(s){
+      var seg = {};
+      ATYPE_ORDER.forEach(function(a){ seg[a] = []; });
+      filtered.filter(function(r){ return r.status === s; }).forEach(function(r){ seg[r.atype].push(r); });
+      return {status: s, seg: seg};
+    });
+  }
+
+  function render(territory, statusMode){
+    var statusOrder = statusMode === 'live' ? LIVE_STATUS_ORDER : FULL_STATUS_ORDER;
+    var data = buildData(territory, statusOrder);
+    var maxTotal = Math.max.apply(null, data.map(function(d){ return ATYPE_ORDER.reduce(function(s,a){ return s + d.seg[a].length; }, 0); }));
+    var tk = computeTicks(maxTotal);
+    var top = tk.top;
+
+    var W = 600, H = 300, padLeft = 118, padRight = 34, padTop = 8, padBottom = 26;
+    var plotW = W - padLeft - padRight, plotH = H - padTop - padBottom;
+    var n = statusOrder.length;
+    var bandH = plotH / n;
+    var barH = Math.min(22, bandH * 0.55);
+
+    while (svg.firstChild) svg.removeChild(svg.firstChild);
+    svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+
+    var baseY = padTop + plotH;
+    tk.ticks.forEach(function(v){
+      var x = padLeft + (v / top) * plotW;
+      svg.appendChild(el('line', {x1: x, x2: x, y1: padTop, y2: baseY, stroke: '#E7E9F2', 'stroke-width': 1}));
+      var t = el('text', {x: x, y: baseY + 14, 'text-anchor': 'middle', 'font-size': 9, fill: '#8B93A7'});
+      t.textContent = v;
+      svg.appendChild(t);
+    });
+
+    data.forEach(function(d, i){
+      var cy = padTop + bandH * (i + 0.5);
+      var barY = cy - barH / 2;
+      var nonzero = ATYPE_ORDER.map(function(a){ return {atype: a, members: d.seg[a]}; }).filter(function(s){ return s.members.length > 0; });
+      var total = nonzero.reduce(function(s, seg){ return s + seg.members.length; }, 0);
+
+      var ylabel = el('text', {x: padLeft - 8, y: cy + 3.5, 'text-anchor': 'end', 'font-size': 10.5, fill: '#5B6472'});
+      ylabel.textContent = STATUS_LABEL[d.status];
+      svg.appendChild(ylabel);
+
+      if (nonzero.length > 0) {
+        var totalW = (total / top) * plotW;
+        var clipId = 'clip-' + i;
+        var clip = el('clipPath', {id: clipId});
+        clip.appendChild(el('rect', {x: padLeft - 20, y: barY, width: totalW + 20, height: barH, rx: 4, ry: 4}));
+        svg.appendChild(clip);
+
+        var grp = el('g', {'clip-path': 'url(#' + clipId + ')'});
+        var cumLeft = padLeft;
+        nonzero.forEach(function(seg, idx){
+          var idealW = (seg.members.length / top) * plotW;
+          var isLast = idx === nonzero.length - 1;
+          var w = isLast ? idealW : Math.max(idealW - 2, 2);
+          var x = cumLeft;
+          var rect = el('rect', {x: x, y: barY, width: Math.max(w,1), height: barH, fill: ATYPE_COLOR[seg.atype], class: 'bar-seg'});
+          rect.addEventListener('mousemove', function(ev){
+            var lines = seg.members.map(function(m){ return m.name + ' — ' + m.company; }).join('<br>');
+            tooltip.innerHTML = '<div class="tt-title">' + STATUS_LABEL[d.status] + ' · ' + seg.atype + '</div><div class="tt-row">' + lines + '</div>';
+            tooltip.style.display = 'block';
+            tooltip.style.left = (ev.clientX + 14) + 'px';
+            tooltip.style.top = (ev.clientY + 14) + 'px';
+          });
+          rect.addEventListener('mouseleave', function(){ tooltip.style.display = 'none'; });
+          grp.appendChild(rect);
+          cumLeft = x + w + (isLast ? 0 : 2);
+        });
+        svg.appendChild(grp);
+
+        var lbl = el('text', {x: padLeft + totalW + 6, y: cy + 3.5, 'text-anchor': 'start', 'font-size': 11, 'font-weight': 700, fill: '#0B1440'});
+        lbl.textContent = total;
+        svg.appendChild(lbl);
+      }
+    });
+
+    svg.appendChild(el('line', {x1: padLeft, x2: padLeft, y1: padTop, y2: baseY, stroke: '#C9CEDC', 'stroke-width': 1}));
+  }
+
+  function rerender(){ render(terrSel.value, statusModeSel.value); }
+  terrSel.addEventListener('change', rerender);
+  statusModeSel.addEventListener('change', rerender);
+  rerender();
+}
+
+/* =========================================================================
+   BOOT
+   ========================================================================= */
+(function boot(){
+  var useMock = /[?&]mock=1\b/.test(location.search);
+  showBanner('Loading live data from Google Sheets…', false);
+  var loadPromise = useMock ? loadTrackerTableMock() : loadTrackerTableJSONP(SHEET_ID, SHEET_NAME, 10000);
+  loadPromise.then(function(table){
+    var records = parseTrackerTable(table);
+    var stamp = 'Live from Google Sheets · ' + records.length + ' contacts · loaded ' + new Date().toLocaleString();
+    initDashboard(records, stamp);
+    if (records.length === 0) {
+      var dbg = document.getElementById('debugPanel');
+      dbg.style.display = 'block';
+      dbg.textContent =
+        'DIAGNOSTIC — 0 contacts parsed. Please screenshot this whole box and send it back.\n\n' +
+        'table.cols labels (in order):\n' + JSON.stringify(table.cols.map(function(c){ return c.label; }), null, 1) + '\n\n' +
+        'table.rows[0].c values:\n' + JSON.stringify((table.rows[0] || {}).c, null, 1) + '\n\n' +
+        'table.rows[1].c values:\n' + JSON.stringify((table.rows[1] || {}).c, null, 1) + '\n\n' +
+        'total rows returned: ' + table.rows.length;
+    }
+  }).catch(function(err){
+    console.error(err);
+    showBanner('Could not load live data: ' + err.message, true);
+  });
+})();
+</script>
+</body>
+</html>
