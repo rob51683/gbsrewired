@@ -439,7 +439,7 @@ function loadTrackerTableMock(){
    PARSE — gviz table -> flat record objects, same shape the old Python
    pipeline (records_v3.json) used to produce.
    ========================================================================= */
-var REQUIRED_HEADERS = ['Territory','Owner','Name','Company','Source','Activity Type','Quarter','Meeting Held?','Opportunity Value','Opportunity Link','STATUS'];
+var REQUIRED_HEADERS = ['Territory','Owner','Name','Company','Source Event','Activity Type','Quarter','Meeting Held?','Opportunity?','Opportunity Link','STATUS'];
 
 var HEADER_SCAN_DEPTH = 10;
 
@@ -469,6 +469,13 @@ function parseTrackerTable(table){
     }
   }
 
+  /* The "Opportunity Value" column has no header text at all in the sheet —
+     it's a blank cell sitting immediately after "Opportunity?". Since it
+     can't be found by name, locate it by position instead. */
+  if (idx['Opportunity Value'] === undefined && idx['Opportunity?'] !== undefined) {
+    idx['Opportunity Value'] = idx['Opportunity?'] + 1;
+  }
+
   function cellStr(row, label){
     var c = row.c[idx[label]];
     return (c && c.v !== null && c.v !== undefined) ? String(c.v) : '';
@@ -487,7 +494,7 @@ function parseTrackerTable(table){
       owner: cellStr(row, 'Owner'),
       name: cellStr(row, 'Name'),
       company: cellStr(row, 'Company'),
-      event: cellStr(row, 'Source'),
+      event: cellStr(row, 'Source Event'),
       atype: cellStr(row, 'Activity Type'),
       quarter: cellStr(row, 'Quarter'),
       meeting: cellStr(row, 'Meeting Held?') === 'Y',
