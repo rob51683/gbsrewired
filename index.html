@@ -62,8 +62,17 @@
   table.pv td:first-child{display:flex; align-items:center; font-weight:700; white-space:nowrap;}
   table.pv td.num{font-variant-numeric:tabular-nums; font-weight:700;}
   table.pv td.lost-txt{color:var(--coral);}
+  table.pv td.won-txt{color:var(--good);}
   table.pv tr:last-child td{border-bottom:none;}
   table.pv tr.totalrow td{border-top:2px solid var(--grid); padding-top:12px;}
+
+  .sheet-link{color:var(--accent); font-weight:600; text-decoration:none;}
+  .sheet-link:hover{text-decoration:underline;}
+
+  .kpi-row{display:grid; grid-template-columns:repeat(5, 1fr); gap:14px;}
+  .kpi-card{background:var(--surface); border-radius:14px; padding:16px 18px; border:1px solid var(--border); box-shadow:0 1px 2px rgba(11,20,64,0.04);}
+  .kpi-value{font-size:26px; font-weight:800; color:var(--navy-deep); letter-spacing:-0.01em; font-variant-numeric:tabular-nums;}
+  .kpi-label{font-size:11px; color:var(--ink-muted); margin-top:5px; text-transform:uppercase; letter-spacing:.02em;}
 
   table.detail{width:100%; border-collapse:collapse; font-size:12px;}
   table.detail th{text-align:left; color:var(--ink-muted); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.03em; padding:0 10px 8px; border-bottom:1px solid var(--grid);}
@@ -89,6 +98,7 @@
   .pill.intro{background:#FCEFD1; color:#92720B;}
 
   .pill.st-open{background:var(--accent-soft); color:var(--accent);}
+  .pill.st-won{background:#D7F5DE; color:#0B7A34;}
   .pill.st-lost{background:#FBE3EA; color:#C81E4A;}
   .pill.st-dead{background:#F8E2EE; color:#B2367B;}
   .pill.st-active{background:var(--good-soft); color:var(--good);}
@@ -140,12 +150,26 @@
   <header>
     <div class="title-block">
       <h1>GBS Rewired Business Development</h1>
-      <p>Territory and Pipeline Dashboard <span class="stamp" id="loadStamp"></span></p>
+      <p>Territory and Pipeline Dashboard · <a class="sheet-link" href="https://docs.google.com/spreadsheets/d/13d0SyThGsv5kPAFShA1jbNuYdKWr7JclZG2VsrVA6r8/edit" target="_blank" rel="noopener">Google Sheets ↗</a> <span class="stamp" id="loadStamp"></span></p>
     </div>
   </header>
 
   <div class="load-banner" id="loadBanner"><div class="spinner"></div><span id="loadBannerText">Loading live data from Google Sheets…</span></div>
   <div id="debugPanel" style="display:none; background:#111; color:#0f0; font-family:monospace; font-size:11px; white-space:pre-wrap; padding:14px; border-radius:8px; margin-bottom:18px; max-height:400px; overflow:auto;"></div>
+
+  <section>
+    <div class="section-head">
+      <h2>2026 progress, year to date</h2>
+      <span class="sub">Live counts across all territories</span>
+    </div>
+    <div class="kpi-row">
+      <div class="kpi-card"><div class="kpi-value" id="kpiMeetings">–</div><div class="kpi-label">Meetings held</div></div>
+      <div class="kpi-card"><div class="kpi-value" id="kpiSQL">–</div><div class="kpi-label">SQLs (active meetings)</div></div>
+      <div class="kpi-card"><div class="kpi-value" id="kpiOpps">–</div><div class="kpi-label">Opps created</div></div>
+      <div class="kpi-card"><div class="kpi-value" id="kpiPipelineCreated">–</div><div class="kpi-label">Pipeline created</div></div>
+      <div class="kpi-card"><div class="kpi-value" id="kpiActivePipeline">–</div><div class="kpi-label">Active pipeline</div></div>
+    </div>
+  </section>
 
   <section>
     <div class="grid-2">
@@ -197,7 +221,7 @@
         </div>
         <div class="card">
           <table class="pv">
-            <thead><tr><th>Territory</th><th class="num">Open</th><th class="num">Lost</th><th class="num">Total</th><th class="num">#</th></tr></thead>
+            <thead><tr><th>Territory</th><th class="num">Open</th><th class="num">Won</th><th class="num">Lost</th><th class="num">Total</th><th class="num">#</th></tr></thead>
             <tbody id="tpvbody"></tbody>
           </table>
         </div>
@@ -298,6 +322,7 @@
           <option value="Meeting Active">Meeting Active</option>
           <option value="Meeting Dead">Meeting Dead</option>
           <option value="Open Opp">Open Opp</option>
+          <option value="Won Opp">Won Opp</option>
           <option value="Lost Opp">Lost Opp</option>
           <option value="Dup contact (same opp)">Dup contact (same opp)</option>
           <option value="—">— (no status)</option>
@@ -571,6 +596,7 @@ function renderQtrTable(gridData, fc, tbd){
 
 var STATUS_PILL = {
   'Oppty: Open': ['st-open', 'Open Opp'],
+  'Oppty: Closed/Won': ['st-won', 'Won Opp'],
   'Oppty: Closed/Lost': ['st-lost', 'Lost Opp'],
   'Meeting - Active': ['st-active', 'Meeting Active'],
   'Meeting - Dead': ['st-dead', 'Meeting Dead'],
@@ -612,28 +638,51 @@ function renderDetail(){
 
 function renderPipeline(){
   var pipe = {};
-  TERRITORIES.forEach(function(t){ pipe[t] = {open:0, lost:0, n:0}; });
+  TERRITORIES.forEach(function(t){ pipe[t] = {open:0, won:0, lost:0, n:0}; });
   RECORDS.forEach(function(r){
     if (!r.opp_link) return;
     var p = pipe[r.territory];
     p.n += 1;
     if (r.status === 'Oppty: Open') p.open += (r.opp_value || 0);
+    else if (r.status === 'Oppty: Closed/Won') p.won += (r.opp_value || 0);
     else if (r.status === 'Oppty: Closed/Lost') p.lost += (r.opp_value || 0);
   });
-  var rows = [], totO = 0, totL = 0, totN = 0;
+  var rows = [], totO = 0, totW = 0, totL = 0, totN = 0;
   TERRITORIES.forEach(function(t){
     var p = pipe[t];
-    totO += p.open; totL += p.lost; totN += p.n;
+    totO += p.open; totW += p.won; totL += p.lost; totN += p.n;
     var dot = '<span class="tdot" style="background:' + COLOR[t] + ';"></span>';
-    var total = p.open + p.lost;
+    var total = p.open + p.won + p.lost;
     rows.push('<tr><td>' + dot + label(t) + '</td><td class="num">' + fmtMoney(p.open) + '</td>' +
+      '<td class="num won-txt">' + fmtMoney(p.won) + '</td>' +
       '<td class="num lost-txt">' + fmtMoney(p.lost) + '</td>' +
       '<td class="num tot">' + fmtMoney(total) + '</td><td class="num">' + p.n + '</td></tr>');
   });
   rows.push('<tr class="totalrow"><td>Total</td><td class="num">' + fmtMoney(totO) + '</td>' +
-    '<td class="num lost-txt">' + fmtMoney(totL) + '</td><td class="num tot">' + fmtMoney(totO + totL) + '</td>' +
+    '<td class="num won-txt">' + fmtMoney(totW) + '</td>' +
+    '<td class="num lost-txt">' + fmtMoney(totL) + '</td><td class="num tot">' + fmtMoney(totO + totW + totL) + '</td>' +
     '<td class="num">' + totN + '</td></tr>');
   return rows.join('');
+}
+
+function computeKPIs(records){
+  var DEAD_OR_NEGATIVE = ['Meeting - Dead', 'Oppty: Closed/Lost', 'Ignore (Multiple per Opp)'];
+  var meetingsHeld = records.filter(function(r){ return r.meeting; }).length;
+  var sqlCount = records.filter(function(r){
+    return r.meeting && r.status && DEAD_OR_NEGATIVE.indexOf(r.status) === -1;
+  }).length;
+  var oppsCreated = records.filter(function(r){ return r.opp_link; }).length;
+  var pipelineCreated = 0, activePipeline = 0;
+  records.forEach(function(r){
+    if (!r.opp_link) return;
+    pipelineCreated += (r.opp_value || 0);
+    if (r.status === 'Oppty: Open') activePipeline += (r.opp_value || 0);
+  });
+  document.getElementById('kpiMeetings').textContent = meetingsHeld;
+  document.getElementById('kpiSQL').textContent = sqlCount;
+  document.getElementById('kpiOpps').textContent = oppsCreated;
+  document.getElementById('kpiPipelineCreated').textContent = fmtMoney(pipelineCreated);
+  document.getElementById('kpiActivePipeline').textContent = fmtMoney(activePipeline);
 }
 
 function renderTargets(){
@@ -695,6 +744,7 @@ function initDashboard(records, stampText){
   document.getElementById('t3body').innerHTML = renderQtrTable(opps, null, true);
   document.getElementById('tpvbody').innerHTML = renderPipeline();
   document.getElementById('t6body').innerHTML = renderDetail();
+  computeKPIs(records);
 
   var t7 = renderTargets();
   document.getElementById('t7head').innerHTML = t7.head;
@@ -783,9 +833,9 @@ function initSourcing(){
 
 /* ---------------- Widget 6 — horizontal stacked bar chart ---------------- */
 function initStatusChart(){
-  var FULL_STATUS_ORDER = ['Chasing','Intro/Mtg in progress','Meeting Scheduled','Meeting - Active','Meeting - Dead','Oppty: Open','Oppty: Closed/Lost'];
-  var LIVE_STATUS_ORDER = ['Chasing','Intro/Mtg in progress','Meeting Scheduled','Meeting - Active','Oppty: Open'];
-  var STATUS_LABEL = {'Chasing':'Chasing','Intro/Mtg in progress':'Intro/Mtg in progress','Meeting Scheduled':'Meeting Scheduled','Meeting - Active':'Meeting Active','Meeting - Dead':'Meeting Dead','Oppty: Open':'Open Opp','Oppty: Closed/Lost':'Lost Opp'};
+  var FULL_STATUS_ORDER = ['Chasing','Intro/Mtg in progress','Meeting Scheduled','Meeting - Active','Meeting - Dead','Oppty: Open','Oppty: Closed/Won','Oppty: Closed/Lost'];
+  var LIVE_STATUS_ORDER = ['Chasing','Intro/Mtg in progress','Meeting Scheduled','Meeting - Active','Oppty: Open','Oppty: Closed/Won'];
+  var STATUS_LABEL = {'Chasing':'Chasing','Intro/Mtg in progress':'Intro/Mtg in progress','Meeting Scheduled':'Meeting Scheduled','Meeting - Active':'Meeting Active','Meeting - Dead':'Meeting Dead','Oppty: Open':'Open Opp','Oppty: Closed/Won':'Won Opp','Oppty: Closed/Lost':'Lost Opp'};
   var ATYPE_ORDER = ['Conference','Podcast','Publication'];
   var ATYPE_COLOR = {'Conference':'#3D5FE0','Podcast':'#0ca30c','Publication':'#6947BF'};
 
