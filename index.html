@@ -441,23 +441,31 @@ function loadTrackerTableMock(){
    ========================================================================= */
 var REQUIRED_HEADERS = ['Territory','Owner','Name','Company','Source','Activity Type','Quarter','Meeting Held?','Opportunity Value','Opportunity Link','STATUS'];
 
+var HEADER_SCAN_DEPTH = 10;
+
 function parseTrackerTable(table){
   var idx = {};
   table.cols.forEach(function(c, i){ idx[c.label] = i; });
   var rows = table.rows;
 
-  /* Google's header auto-detection sometimes guesses wrong (e.g. a title/
-     note row in row 1 gets treated as the header, and the real column
-     names end up as the first data row instead). Detect that and recover
-     by treating the first data row as the header row instead. */
+  /* Google's header auto-detection sometimes guesses wrong — e.g. one or
+     more title/note rows sit above the real header row, so gviz's declared
+     "columns" are just the title text, and the real column names ("Territory",
+     "Owner", ...) end up buried a few rows into the data instead. Recover by
+     scanning the first several rows for whichever one actually contains our
+     known column names, and treat everything after that row as the real data. */
   var looksRight = REQUIRED_HEADERS.every(function(h){ return idx[h] !== undefined; });
-  if (!looksRight && rows.length > 0) {
-    var firstRowLabels = {};
-    rows[0].c.forEach(function(c, i){ firstRowLabels[c && c.v] = i; });
-    var firstRowLooksLikeHeader = REQUIRED_HEADERS.every(function(h){ return firstRowLabels[h] !== undefined; });
-    if (firstRowLooksLikeHeader) {
-      idx = firstRowLabels;
-      rows = rows.slice(1);
+  if (!looksRight) {
+    var scanLimit = Math.min(rows.length, HEADER_SCAN_DEPTH);
+    for (var r = 0; r < scanLimit; r++) {
+      var candidateLabels = {};
+      rows[r].c.forEach(function(c, i){ candidateLabels[c && c.v] = i; });
+      var candidateLooksLikeHeader = REQUIRED_HEADERS.every(function(h){ return candidateLabels[h] !== undefined; });
+      if (candidateLooksLikeHeader) {
+        idx = candidateLabels;
+        rows = rows.slice(r + 1);
+        break;
+      }
     }
   }
 
