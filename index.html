@@ -82,6 +82,7 @@
   table.detail td.num{font-variant-numeric:tabular-nums; font-weight:600;}
   table.detail tr:last-child td{border-bottom:none;}
   table.detail tr.hidden-row{display:none;}
+  table.detail td.details-col{max-width:320px; white-space:normal; color:var(--ink-secondary); font-size:11.5px; line-height:1.5;}
   .mcheck{font-size:14px;}
 
   .filters{display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap;}
@@ -337,7 +338,7 @@
         <span class="count" id="rowCount"></span>
       </div>
       <table class="detail" id="detailTable">
-        <thead><tr><th>Territory</th><th>Qtr</th><th>Name</th><th>Company</th><th>Type</th><th>Meeting</th><th>Status</th><th class="num">Opp Value</th></tr></thead>
+        <thead><tr><th>Territory</th><th>Qtr</th><th>Name</th><th>Company</th><th>Type</th><th>Meeting</th><th>Status</th><th class="num">Opp Value</th><th>Current Status Details</th></tr></thead>
         <tbody id="t6body"></tbody>
       </table>
     </div>
@@ -526,6 +527,7 @@ function parseTrackerTable(table){
       opp_link: !!oppLinkRaw,
       opp_value: cellNum(row, 'Opportunity Value'),
       status: statusRaw || null,
+      status_details: cellStr(row, 'Current Status Details'),
     };
   }).filter(function(r){ return TERRITORIES.indexOf(r.territory) !== -1; });
 }
@@ -607,6 +609,10 @@ var STATUS_PILL = {
 };
 function statusPill(status){ return STATUS_PILL[status] || ['st-none', '—']; }
 
+function escapeHtml(s){
+  return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
 function renderDetail(){
   var rows = [];
   TERRITORIES.forEach(function(t){
@@ -624,12 +630,13 @@ function renderDetail(){
       var typeCls = {'Conference':'accent','Podcast':'good','Publication':'muted'}[r.atype] || 'muted';
       var typeHtml = '<span class="pill ' + typeCls + '">' + r.atype + '</span>';
       var val = r.opp_link ? fmtMoney(r.opp_value) : '—';
+      var details = escapeHtml(r.status_details) || '—';
       var dot = '<span class="tdot" style="background:' + COLOR[t] + ';"></span>';
       rows.push(
         '<tr data-territory="' + t + '" data-quarter="' + r.quarter + '" data-status="' + sp[1] + '" data-type="' + r.atype + '">' +
         '<td>' + dot + label(t) + '</td><td>' + r.quarter + '</td><td>' + r.name + '</td><td>' + r.company + '</td>' +
         '<td>' + typeHtml + '</td><td>' + meetingMark + '</td>' +
-        '<td>' + statusHtml + '</td><td class="num">' + val + '</td></tr>'
+        '<td>' + statusHtml + '</td><td class="num">' + val + '</td><td class="details-col">' + details + '</td></tr>'
       );
     });
   });
